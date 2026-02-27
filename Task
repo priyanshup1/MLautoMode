@@ -1,0 +1,42 @@
+# Mini AutoML Platform
+
+## 1. Project Setup
+- [x] Initialize Python FastAPI backend
+- [x] Initialize React frontend (Vite + TS/JS + Tailwind)
+- [x] Set up project structure
+
+## 2. Backend Implementation
+- [x] Core Setup (CORS, basic routing)
+- [x] Dataset Upload & Detection
+  - [x] Accept CSV uploads
+  - [x] Analyze dataset & detect problem type (Classification/Regression)
+  - [x] Return dataset summary (missing values, types, distribution)
+- [x] Data Preprocessing
+  - [x] Impute missing values (mean/median/mode)
+  - [x] Remove duplicates
+  - [x] Encode categorical variables
+  - [x] Feature scaling
+  - [x] (Optional) Outlier detection (IQR)
+- [x] Model Training Engine
+  - [x] Train/Test split
+  - [x] Classification models (Logistic, RF, SVM, KNN, XGBoost)
+  - [x] Regression models (Linear, RF, Decision Tree, SVR, XGBoost)
+  - [x] Calculate metrics
+- [x] Visualizations & Insights
+  - [x] Target distribution, correlation heatmap, feature importance
+  - [x] Classification: Class imbalance, ROC
+  - [x] Regression: Actual vs Predicted, Residuals
+  - [x] Generate business insight text
+
+## 3. Frontend Implementation
+- [/] Setup Routing and Basic Layout (Navbar + Main Content)
+- [ ] Tab 1: Dataset Upload & Detection
+- [ ] Tab 2: Preprocessing Preview & Controls
+- [ ] Tab 3: Model Training Panel & Results Table
+- [ ] Tab 4: Visualizations & Explanations ("Why this matters")
+- [ ] Final: Business Insight Generator
+
+## 4. Integration & Testing
+- [ ] Connect frontend to backend APIs
+- [ ] Test End-to-End flow with mock/real datasets
+- [ ] Fix bugs and polish UI/UX
