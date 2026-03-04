@@ -142,6 +142,11 @@ export default function ModelTraining({ sessionId, problemType, onComplete, exis
                                                 {i === 0 && <Trophy className="inline h-3.5 w-3.5 text-amber-500 mr-1.5" />}
                                                 {r.model_name}
                                             </td>
+                                            {metrics.map(m => (
+                                                <td key={m.key} className="px-5 py-3">
+                                                    <MetricBadge value={r.metrics[m.key]} isPercent={m.pct} />
+                                                </td>
+                                            ))}
                                             <td className="px-5 py-3 text-slate-500 font-mono text-xs">
                                                 {r.train_time_sec !== undefined ? `${r.train_time_sec}s` : '-'}
                                             </td>
