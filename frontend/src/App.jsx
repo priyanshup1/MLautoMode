@@ -5,11 +5,13 @@ import DataAnalysis from './components/DataAnalysis'
 import Preprocessing from './components/Preprocessing'
 import ModelTraining from './components/ModelTraining'
 import Visualizations from './components/Visualizations'
+import PredictTab from './components/PredictTab'
 
 function App() {
   const [activeTab, setActiveTab] = useState('upload')
   const [sessionId, setSessionId] = useState(null)
   const [problemType, setProblemType] = useState(null)
+  const [proMode, setProMode] = useState(false)
 
   const [uploadData, setUploadData] = useState(null)
   const [analysisData, setAnalysisData] = useState(null)
@@ -22,6 +24,7 @@ function App() {
     { id: 'preprocess', icon: GitCommit, label: 'Preprocessing', disabled: !sessionId },
     { id: 'train', icon: Play, label: 'Train Models', disabled: !preprocessData },
     { id: 'visualize', icon: BarChart2, label: 'Visualizations', disabled: !trainingData },
+    { id: 'predict', icon: Activity, label: 'Predict', disabled: !trainingData },
   ]
 
   const handleUploadComplete = (data) => {
@@ -47,6 +50,12 @@ function App() {
   const handleTrainingComplete = (data) => {
     setTrainingData(data)
     setActiveTab('visualize')
+  }
+
+  const handleRetrainComplete = (data) => {
+    // When retraining completes, we update the training data with new model results
+    setTrainingData(data)
+    // Optional: could automatically navigate back to visualize if desired 
   }
 
   return (
@@ -87,6 +96,19 @@ function App() {
                 )
               })}
             </div>
+            {/* Pro Mode Toggle */}
+            <div className="flex items-center space-x-2 ml-4 border-l border-slate-200 pl-4 py-2 hidden sm:flex">
+              <span className={`text-xs font-bold leading-none ${proMode ? 'text-indigo-600' : 'text-slate-400'}`}>PRO</span>
+              <button
+                type="button"
+                onClick={() => setProMode(!proMode)}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${proMode ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                role="switch"
+                aria-checked={proMode}
+              >
+                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${proMode ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -107,13 +129,16 @@ function App() {
           <DataAnalysis sessionId={sessionId} onComplete={handleAnalysisComplete} existingData={analysisData} />
         )}
         {activeTab === 'preprocess' && (
-          <Preprocessing sessionId={sessionId} onComplete={handlePreprocessComplete} existingData={preprocessData} />
+          <Preprocessing sessionId={sessionId} onComplete={handlePreprocessComplete} existingData={preprocessData} proMode={proMode} />
         )}
         {activeTab === 'train' && (
-          <ModelTraining sessionId={sessionId} problemType={problemType} onComplete={handleTrainingComplete} existingData={trainingData} />
+          <ModelTraining sessionId={sessionId} problemType={problemType} onComplete={handleTrainingComplete} existingData={trainingData} proMode={proMode} />
         )}
         {activeTab === 'visualize' && (
-          <Visualizations data={trainingData} />
+          <Visualizations data={trainingData} proMode={proMode} />
+        )}
+        {activeTab === 'predict' && (
+          <PredictTab sessionId={sessionId} problemType={problemType} onRetrainComplete={handleRetrainComplete} />
         )}
       </main>
     </div>

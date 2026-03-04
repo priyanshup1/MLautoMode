@@ -12,7 +12,7 @@ function MetricBadge({ value, isPercent }) {
     return <span className="font-mono text-sm text-slate-800">{display}</span>
 }
 
-export default function ModelTraining({ sessionId, problemType, onComplete, existingData }) {
+export default function ModelTraining({ sessionId, problemType, onComplete, existingData, proMode }) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [selectedModels, setSelectedModels] = useState(
@@ -34,7 +34,7 @@ export default function ModelTraining({ sessionId, problemType, onComplete, exis
         try {
             const res = await axios.post(
                 `${API_BASE}/api/train/${sessionId}`,
-                { models: selectedModels },
+                { models: selectedModels, pro_mode: proMode },
                 { headers: { 'Content-Type': 'application/json' } }
             )
             onComplete(res.data)
@@ -129,6 +129,9 @@ export default function ModelTraining({ sessionId, problemType, onComplete, exis
                                         {metrics.map(m => (
                                             <th key={m.key} className="px-5 py-3 text-left font-medium text-slate-600">{m.key}</th>
                                         ))}
+                                        <th className="px-5 py-3 text-left font-medium text-slate-600">Train Time (s)</th>
+                                        {proMode && <th className="px-5 py-3 text-left font-medium text-slate-600">CV Score</th>}
+                                        {proMode && <th className="px-5 py-3 text-left font-medium text-slate-600">Best Params</th>}
                                         <th className="px-5 py-3 text-left font-medium text-slate-600">Rank</th>
                                     </tr>
                                 </thead>
@@ -139,11 +142,28 @@ export default function ModelTraining({ sessionId, problemType, onComplete, exis
                                                 {i === 0 && <Trophy className="inline h-3.5 w-3.5 text-amber-500 mr-1.5" />}
                                                 {r.model_name}
                                             </td>
-                                            {metrics.map(m => (
-                                                <td key={m.key} className="px-5 py-3">
-                                                    <MetricBadge value={r.metrics[m.key]} isPercent={m.pct} />
+                                            <td className="px-5 py-3 text-slate-500 font-mono text-xs">
+                                                {r.train_time_sec !== undefined ? `${r.train_time_sec}s` : '-'}
+                                            </td>
+                                            {proMode && (
+                                                <td className="px-5 py-3">
+                                                    {r.cv_score ? <MetricBadge value={r.cv_score} isPercent={problemType === 'Classification'} /> : '-'}
                                                 </td>
-                                            ))}
+                                            )}
+                                            {proMode && (
+                                                <td className="px-5 py-3">
+                                                    {r.best_params ? (
+                                                        <div className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap group relative">
+                                                            <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                                                                Tuned
+                                                            </span>
+                                                            <div className="hidden group-hover:block absolute z-10 bg-slate-900 text-white text-xs p-2 rounded shadow-lg mt-1 whitespace-pre max-w-[300px] overflow-x-auto">
+                                                                {JSON.stringify(r.best_params, null, 2)}
+                                                            </div>
+                                                        </div>
+                                                    ) : <span className="text-slate-400 text-xs text-center w-full block">-</span>}
+                                                </td>
+                                            )}
                                             <td className="px-5 py-3">
                                                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
                                                     #{i + 1}

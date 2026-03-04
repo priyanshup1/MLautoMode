@@ -10,11 +10,18 @@ const SCALERS = [
     { value: 'robust', label: 'Robust Scaler (IQR-based)', desc: 'Uses median & IQR — less sensitive to outliers than StandardScaler.' },
 ]
 
-export default function Preprocessing({ sessionId, onComplete, existingData }) {
+export default function Preprocessing({ sessionId, onComplete, existingData, proMode }) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [scaleFeatures, setScaleFeatures] = useState(true)
     const [scalerType, setScalerType] = useState('standard')
+
+    // Pro Mode states
+    const [imputationStrategy, setImputationStrategy] = useState('median')
+    const [encodingStrategy, setEncodingStrategy] = useState('onehot')
+    const [polynomialDegree, setPolynomialDegree] = useState(1)
+    const [featureSelectionK, setFeatureSelectionK] = useState(0)
+    const [handleOutliers, setHandleOutliers] = useState(false)
 
     const handlePreprocess = async () => {
         setLoading(true)
@@ -22,7 +29,16 @@ export default function Preprocessing({ sessionId, onComplete, existingData }) {
         try {
             const res = await axios.post(
                 `${API_BASE}/api/preprocess/${sessionId}`,
-                { scale_features: scaleFeatures, scaler_type: scalerType },
+                {
+                    scale_features: scaleFeatures,
+                    scaler_type: scalerType,
+                    imputation_strategy: imputationStrategy,
+                    encoding_strategy: encodingStrategy,
+                    polynomial_degree: polynomialDegree,
+                    feature_selection_k: featureSelectionK,
+                    handle_outliers: handleOutliers,
+                    pro_mode: proMode
+                },
                 { headers: { 'Content-Type': 'application/json' } }
             )
             onComplete(res.data)
@@ -97,6 +113,89 @@ export default function Preprocessing({ sessionId, onComplete, existingData }) {
                                 </div>
                             </label>
                         ))}
+                    </div>
+                )}
+                {/* Pro Mode: Advanced Options */}
+                {proMode && (
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 space-y-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">PRO</span>
+                            <h3 className="font-bold text-slate-800 text-sm">Advanced Engineering Options</h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Imputation Strategy */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Imputation Strategy</label>
+                                <select
+                                    value={imputationStrategy}
+                                    onChange={(e) => setImputationStrategy(e.target.value)}
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                >
+                                    <option value="mean">Mean (Average)</option>
+                                    <option value="median">Median (Middle value)</option>
+                                    <option value="most_frequent">Most Frequent (Mode)</option>
+                                    <option value="constant">Constant (0)</option>
+                                </select>
+                                <p className="text-[10px] text-slate-500 italic">How to handle missing values in numeric columns.</p>
+                            </div>
+
+                            {/* Polynomial Features */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Feature interactions (Polynomial)</label>
+                                <select
+                                    value={polynomialDegree}
+                                    onChange={(e) => setPolynomialDegree(parseInt(e.target.value))}
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                >
+                                    <option value="1">None (Default)</option>
+                                    <option value="2">Degree 2 (Adds quadratic terms &#x26; interactions)</option>
+                                </select>
+                                <p className="text-[10px] text-slate-500 italic">Captures non-linear relationships. Can explode feature count!</p>
+                            </div>
+
+                            {/* Feature Selection */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Automated Feature Selection (K-Best)</label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={featureSelectionK}
+                                        onChange={(e) => setFeatureSelectionK(parseInt(e.target.value))}
+                                        className="w-20 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                    <span className="text-sm text-slate-600">Top features (0 = all)</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 italic">Reduces noise by keeping only the most statistically significant features.</p>
+                            </div>
+
+                            {/* Encoding Strategy */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Categorical Encoding</label>
+                                <select
+                                    value={encodingStrategy}
+                                    onChange={(e) => setEncodingStrategy(e.target.value)}
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                >
+                                    <option value="onehot">One-Hot Encoding (Default)</option>
+                                    <option value="target">Target Encoding (Pro)</option>
+                                </select>
+                                <p className="text-[10px] text-slate-500 italic">Target encoding is better for high-cardinality features like 'City' or 'Zipcode'.</p>
+                            </div>
+
+                            {/* Outlier Removal */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Remove Outliers (Isolation Forest)</label>
+                                    <button onClick={() => setHandleOutliers(!handleOutliers)}
+                                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${handleOutliers ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow ${handleOutliers ? 'translate-x-5' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-slate-500 italic mt-1.5">Automatically removes anomalous data points using Isolation Forest.</p>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

@@ -7,16 +7,18 @@ import { BarChart2, Brain, Lightbulb, TrendingUp, Activity, Target } from 'lucid
 
 const COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#84cc16']
 
-export default function Visualizations({ data }) {
+export default function Visualizations({ data, proMode }) {
     if (!data) return null
 
     const { charts, insight, results, feature_names } = data
     const bestModel = results?.[0]
 
     const featureImportanceData = bestModel?.feature_importance && feature_names
-        ? feature_names
-            .map((name, i) => ({ name: name.length > 16 ? name.slice(0, 16) + '…' : name, importance: bestModel.feature_importance[i] ?? 0 }))
-            .sort((a, b) => b.importance - a.importance)
+        ? bestModel.feature_importance
+            .map(item => ({
+                name: typeof item === 'object' ? (item.feature?.length > 16 ? item.feature.slice(0, 16) + '…' : item.feature) : 'Unknown',
+                importance: typeof item === 'object' ? item.importance : item
+            }))
             .slice(0, 10)
         : null
 
@@ -29,7 +31,10 @@ export default function Visualizations({ data }) {
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-2xl font-bold text-slate-900">Visualizations & Business Insight</h1>
+                <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                    Visualizations & Business Insight
+                    {proMode && <span className="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full font-bold shadow-sm">PRO</span>}
+                </h1>
                 <p className="mt-1 text-slate-500">Charts, explanations, and a deep domain analysis of your results.</p>
             </div>
 
@@ -97,6 +102,20 @@ export default function Visualizations({ data }) {
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                    </div>
+                </ChartCard>
+            )}
+
+            {/* ── SHAP Explainability (Pro Mode) ─────────────────────────── */}
+            {proMode && bestModel?.shap_plot && (
+                <ChartCard title={`Advanced Explainability (SHAP) — ${bestModel.model_name}`} icon={<Activity className="h-4 w-4 text-indigo-500" />}
+                    explanation="SHAP (SHapley Additive exPlanations) values break down how each feature contributed to the model's output across all predictions. This goes beyond simple importance by showing the direction (positive/negative impact) and distribution of the effects.">
+                    <div className="flex justify-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <img
+                            src={`data:image/png;base64,${bestModel.shap_plot}`}
+                            alt="SHAP Summary Plot"
+                            className="max-w-full h-auto rounded-lg shadow-sm"
+                        />
                     </div>
                 </ChartCard>
             )}
@@ -185,6 +204,14 @@ export default function Visualizations({ data }) {
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
+                </ChartCard>
+            )}
+
+            {/* ── Confusion Matrix (Pro Mode / Classification) ──────────────── */}
+            {proMode && bestModel?.confusion_matrix && (
+                <ChartCard title={`Confusion Matrix — ${bestModel.model_name}`} icon={<Target className="h-4 w-4 text-indigo-500" />}
+                    explanation="The confusion matrix shows exactly where the model is making mistakes. Rows represent actual classes, columns represent predicted classes. High values on the diagonal = correct predictions. Off-diagonal values reveal which classes are being confused (e.g. False Positives and False Negatives).">
+                    <ConfusionMatrix data={bestModel.confusion_matrix} />
                 </ChartCard>
             )}
 
@@ -289,6 +316,63 @@ function ChartCard({ title, icon, explanation, children }) {
                         <p className="text-xs text-blue-700"><strong>Why this matters:</strong> {explanation}</p>
                     </div>
                 )}
+            </div>
+        </div>
+    )
+}
+
+function ConfusionMatrix({ data }) {
+    const { matrix, labels } = data
+    if (!matrix || !labels) return null
+
+    // Find max value in matrix for normalization of colors
+    const maxVal = Math.max(...matrix.flat())
+
+    return (
+        <div className="overflow-x-auto p-2">
+            <div className="min-w-[400px]">
+                {/* Column Labels */}
+                <div className="flex ml-24">
+                    {labels.map((L, i) => (
+                        <div key={i} className="flex-1 text-center py-2 text-[10px] font-bold text-slate-500 uppercase truncate px-1">
+                            Pred: {L}
+                        </div>
+                    ))}
+                </div>
+
+                {matrix.map((row, i) => (
+                    <div key={i} className="flex h-12">
+                        {/* Row Labels */}
+                        <div className="w-24 flex items-center justify-end pr-4 text-[10px] font-bold text-slate-500 uppercase text-right leading-tight">
+                            Actual: {labels[i]}
+                        </div>
+                        {row.map((val, j) => {
+                            const intensity = maxVal > 0 ? val / maxVal : 0
+                            const isDiagonal = i === j
+                            return (
+                                <div key={j}
+                                    className={`flex-1 flex items-center justify-center border border-white relative group transition-colors`}
+                                    style={{
+                                        backgroundColor: isDiagonal
+                                            ? `rgba(99, 102, 241, ${0.1 + intensity * 0.9})` // Indigo for diagonal
+                                            : `rgba(239, 68, 68, ${intensity * 0.8})`,     // Red for errors
+                                        color: intensity > 0.5 ? '#fff' : '#1e293b'
+                                    }}
+                                >
+                                    <span className="text-xs font-bold">{val}</span>
+                                    {/* Tooltip on hover */}
+                                    <div className="absolute hidden group-hover:block z-20 bottom-full mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded shadow-lg whitespace-nowrap">
+                                        {labels[i]} \u2192 {labels[j]}: {val}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                ))}
+            </div>
+            <div className="mt-4 flex justify-center gap-6 text-[10px] font-medium text-slate-500">
+                <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-indigo-500" /> Correct Predictions</div>
+                <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-red-400" /> Errors / Confusion</div>
             </div>
         </div>
     )
