@@ -2,7 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import { GitCommit, CheckCircle2, AlertCircle, Table, Download, ChevronDown } from 'lucide-react'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const SCALERS = [
     { value: 'standard', label: 'Standard Scaler (Z-score)', desc: 'Centers around mean, scales by std deviation. Best general-purpose choice.' },

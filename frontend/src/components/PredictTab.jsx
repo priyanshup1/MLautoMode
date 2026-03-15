@@ -2,7 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import { UploadCloud, Play, CheckCircle, AlertTriangle, FileText, FastForward } from 'lucide-react'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export default function PredictTab({ sessionId, problemType, onRetrainComplete, proMode }) {
     const [file, setFile] = useState(null)
